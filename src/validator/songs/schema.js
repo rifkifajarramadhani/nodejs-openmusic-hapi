@@ -1,10 +1,5 @@
 const Joi = require('joi');
 
-const albumValidationSchema = Joi.object({
-    name: Joi.string().required(),
-    year: Joi.number().required(),
-});
-
 const songValidationSchema = Joi.object({
     title: Joi.string().required(),
     year: Joi.number().required(),
@@ -15,6 +10,5 @@ const songValidationSchema = Joi.object({
 });
 
 module.exports = {
-    albumValidationSchema,
     songValidationSchema
 };
