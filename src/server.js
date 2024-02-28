@@ -5,17 +5,23 @@ const ClientError = require('./exceptions/client-error');
 
 // albums
 const albums = require('./api/albums');
-const AlbumsService = require('./services/albums/albums-service');
+const AlbumsService = require('./services/albums-service');
 const albumsValidator = require('./validator/albums');
 
 // songs
 const songs = require('./api/songs');
-const SongsService = require('./services/songs/songs-service');
+const SongsService = require('./services/songs-service');
 const songsValidator = require('./validator/songs');
+
+// users
+const users = require('./api/users');
+const UsersService = require('./services/users-service');
+const usersValidator = require('./validator/users');
 
 const init = async () => {
     const albumsService = new AlbumsService();
-    const songsService = new SongsService;
+    const songsService = new SongsService();
+    const usersService = new UsersService();
 
     const server = Hapi.server({
         port: process.env.PORT,
@@ -40,6 +46,13 @@ const init = async () => {
             options: {
                 service: songsService,
                 validator: songsValidator,
+            }
+        },
+        {
+            plugin: users,
+            options: {
+                service: usersService,
+                validator: usersValidator,
             }
         },
     ]);
