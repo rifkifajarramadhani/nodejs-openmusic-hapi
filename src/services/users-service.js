@@ -3,6 +3,7 @@ const { nanoid } = require("nanoid");
 const bcrypt = require('bcrypt');
 const InvariantError = require("../exceptions/invariant-error");
 const NotFoundError = require("../exceptions/not-found-error");
+const AuthenticationError = require("../exceptions/authentication-error");
 
 class UsersService {
     constructor() {
@@ -41,7 +42,7 @@ class UsersService {
     
     async getUserById(userId) {
         const query = {
-            text: `SELECT id, username, fullname FROM users WHERE id = $i`,
+            text: `SELECT id, username, fullname FROM users WHERE id = $1`,
             values: [userId],
         };
 
@@ -50,6 +51,25 @@ class UsersService {
         if (!result.rowCount) throw new NotFoundError('User not found');
 
         return result.rows[0];
+    }
+
+    async verifyUserCredential(username, password) {
+        const query = {
+            text: `SELECT username, password FROM users WHERE username = $1`,
+            values: [username],
+        };
+
+        const result = await this._pool.query(query);
+
+        if (!result.rowCount) throw new AuthenticationError('Invalid credentials');
+
+        const { id, password: hashedPassword } = result.rows[0];
+
+        const isMatch = await bcrypt.compare(password, hashedPassword);
+
+        if (!isMatch) throw new AuthenticationError('Invalid credentials');
+
+        return id;
     }
 }
 
