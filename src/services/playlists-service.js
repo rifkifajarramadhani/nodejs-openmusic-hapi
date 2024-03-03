@@ -10,7 +10,7 @@ class PlaylistsService {
     }
 
     async addPlaylist({ name, owner }) {
-        const id = `playlists-${nanoid(16)}`;console.log(1 + ` ` + owner)
+        const id = `playlists-${nanoid(16)}`;
         const createdAt = new Date().toISOString();
 
         const query = {
@@ -106,18 +106,29 @@ class PlaylistsService {
         if(playlist.owner !== owner) throw new AuthorizationError('Cannot access this resource');
     }
 
-    async verifyPlaylistAccess(playlistId, userId) {
-        try {
-            
-        } catch (e) {
-            if (e instanceof NotFoundError) throw e;
+    async addPlaylistActivities({ playlistId, songId, credentialId, action }) {
+        const id = `activities-${nanoid(16)}`;
+        const createdAt = new Date().toISOString();
+        
+        const query = {
+            text: `INSERT INTO playlist_song_activities VALUES($1, $2, $3, $4, $5, $6, $6) RETURNING id`,
+            values: [id, playlistId, songId, credentialId, action, createdAt],
+        };
 
-            try {
-                
-            } catch {
-                throw e;
-            }
-        }
+        const result = await this._pool.query(query);
+
+        if (!result.rowCount) throw new InvariantError('Failed to add activites');
+    }
+
+    async getPlaylistActivities(playlistId) {
+        const query = {
+            text: `SELECT u.username, s.title, p.action, p.created_at as time FROM playlist_song_activities p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN songs s ON p.song_id = s.id WHERE playlist_id = $1`,
+            values: [playlistId],
+        };
+
+        const result = await this._pool.query(query);
+
+        return result.rows;
     }
 }
 

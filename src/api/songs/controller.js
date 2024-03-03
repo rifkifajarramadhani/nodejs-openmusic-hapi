@@ -89,6 +89,7 @@ class SongsController {
         await this._songsService.getSongById(songId);
         await this._songsService.checkExistsSongInPlaylist(playlistId, songId);
         await this._songsService.addSongToPlaylist(playlistId, songId);
+        await this._playlistsService.addPlaylistActivities({ playlistId, songId, credentialId, action: 'add' });
 
         const res = h.response({
             status: 'success',
@@ -101,12 +102,13 @@ class SongsController {
     async deleteSongInPlaylistController(req, h) {
         this._validator.validateDeleteSongInPlaylistPayload(req.payload);
 
-        const { id: playlistId } = req.params;console.log(playlistId)
+        const { id: playlistId } = req.params;
         const { id: credentialId } = req.auth.credentials;
         const { songId } = req.payload;
 
         await this._playlistsService.verifyPlaylistOwner(playlistId, credentialId);
         await this._songsService.deleteSongFromPlaylist(songId, playlistId);
+        await this._playlistsService.addPlaylistActivities({ playlistId, songId, credentialId, action: 'delete' });
 
         const res = h.response({
             status: 'success',

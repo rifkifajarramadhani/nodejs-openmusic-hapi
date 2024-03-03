@@ -57,16 +57,35 @@ class PlaylistsController {
     }
 
     async deletePlaylistByIdController(req, h) {
-        const { id } = req.params;
+        const { id: playlistId } = req.params;
         const { id: credentialId } = req.auth.credentials;
 
-        await this._service.verifyPlaylistOwner(id, credentialId);
+        await this._service.verifyPlaylistOwner(playlistId, credentialId);
 
-        await this._service.deletePlaylistById(id);
+        await this._service.deletePlaylistById(playlistId);
 
         const res = h.response({
             status: 'success',
             message: 'Playlist deleted'
+        });
+        res.code(200);
+        return res;
+    }
+
+    async getPlaylistActivitiesController(req, h) {
+        const { id: playlistId } = req.params;
+        const { id: credentialId } = req.auth.credentials;
+
+        await this._service.verifyPlaylistOwner(playlistId, credentialId);
+
+        const activities = await this._service.getPlaylistActivities(playlistId);
+
+        const res = h.response({
+            status: 'success',
+            data: {
+                playlistId,
+                activities,
+            },
         });
         res.code(200);
         return res;
