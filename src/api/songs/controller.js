@@ -1,6 +1,7 @@
 class SongsController {
-    constructor(service, validator) {
-        this._service = service;
+    constructor(songsService, playlistsService, validator) {
+        this._songsService = songsService;
+        this._playlistsService = playlistsService;
         this._validator = validator;
     }
 
@@ -8,7 +9,7 @@ class SongsController {
         this._validator.validateSongPayload(req.payload);
         const { title, year, genre, performer, duration = null, albumId = null } = req.payload;
 
-        const songId = await this._service.addSong({ title, year, genre, performer, duration, albumId });
+        const songId = await this._songsService.addSong({ title, year, genre, performer, duration, albumId });
 
         const res = h.response({
             status: 'success',
@@ -22,7 +23,8 @@ class SongsController {
     }
 
     async getSongsController(req, h) {
-        const songs = await this._service.getSongs();
+        const { title = '', performer = '' } = req.query;
+        const songs = await this._songsService.getSongs({ title, performer });
 
         const res = h.response({
             status: 'success',
@@ -37,7 +39,7 @@ class SongsController {
     async getSongByIdController(req, h) {
         const { id } = req.params;
 
-        const song = await this._service.getSongById(id);
+        const song = await this._songsService.getSongById(id);
 
         const res = h.response({
             status: 'success',
@@ -53,7 +55,7 @@ class SongsController {
         this._validator.validateSongPayload(req.payload);
         const { id } = req.params;
 
-        await this._service.editSongById(id, req.payload);
+        await this._songsService.editSongById(id, req.payload);
 
         const res = h.response({
             status: 'success',
@@ -66,11 +68,49 @@ class SongsController {
     async deleteSongByIdController(req, h) {
         const { id } = req.params;
 
-        await this._service.deleteSongById(id);
+        await this._songsService.deleteSongById(id);
 
         const res = h.response({
             status: 'success',
             message: 'Success delete song',
+        });
+        res.code(200);
+        return res;
+    }
+
+    async postSongToPlaylistController(req, h) {
+        this._validator.validatePostSongToPlaylistPayload(req.payload);
+        
+        const { id: playlistId } = req.params;
+        const { id: credentialId } = req.auth.credentials;
+        const { songId } = req.payload;
+
+        await this._playlistsService.verifyPlaylistOwner(playlistId, credentialId);
+        await this._songsService.getSongById(songId);
+        await this._songsService.checkExistsSongInPlaylist(playlistId, songId);
+        await this._songsService.addSongToPlaylist(playlistId, songId);
+
+        const res = h.response({
+            status: 'success',
+            message: 'Success add song to playlist',
+        });
+        res.code(201);
+        return res;
+    }
+
+    async deleteSongInPlaylistController(req, h) {
+        this._validator.validateDeleteSongInPlaylistPayload(req.payload);
+
+        const { id: playlistId } = req.params;console.log(playlistId)
+        const { id: credentialId } = req.auth.credentials;
+        const { songId } = req.payload;
+
+        await this._playlistsService.verifyPlaylistOwner(playlistId, credentialId);
+        await this._songsService.deleteSongFromPlaylist(songId, playlistId);
+
+        const res = h.response({
+            status: 'success',
+            message: 'Success delete song in playlist',
         });
         res.code(200);
         return res;

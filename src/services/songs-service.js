@@ -25,9 +25,25 @@ class SongsService {
         return result.rows[0].id;
     }
 
-    async getSongs() {
+    async getSongs({ title, performer }) {
+        let text = 'SELECT id, title, performer FROM songs';
+        let values = [];
+
+        if (title && performer) {
+            text += ' WHERE LOWER(title) LIKE $1 AND LOWER(performer) LIKE $2';
+            values.push(`%${title}%`);
+            values.push(`%${performer}%`);
+        } else if (title) {
+            text += ' WHERE LOWER(title) LIKE $1';
+            values.push(`%${title}%`);
+        } else if (performer) {
+            text += ' WHERE LOWER(performer) LIKE $1';
+            values.push(`%${performer}%`);
+        }
+
         const query = {
-            text: `SELECT id, title, performer FROM songs`
+            text,
+            values,
         };
 
         const result = await this._pool.query(query);
@@ -68,6 +84,42 @@ class SongsService {
         const result = await this._pool.query(query);
 
         if (!result.rowCount) throw new NotFoundError('Failed to delete song, ID not found');
+    }
+
+    async addSongToPlaylist(playlistId, songId) {
+        const id = `playlist-song-${nanoid(16)}`;
+        const createdAt = new Date().toISOString();
+
+        const query = {
+            text: `INSERT INTO playlist_songs VALUES($1, $2, $3, $4, $4) RETURNING id`,
+            values: [id, playlistId, songId, createdAt],
+        };
+
+        const result = await this._pool.query(query);
+
+        if (!result.rowCount) throw new InvariantError('Failed to add song to playlist');
+    }
+
+    async checkExistsSongInPlaylist(playlistId, songId) {
+        const query = {
+            text: `SELECT id FROM playlist_songs WHERE playlist_id = $1 AND song_id = $2`,
+            values: [playlistId, songId],
+        };
+
+        const result = await this._pool.query(query);
+
+        if (result.rowCount > 0) throw new InvariantError('Song already exists in current playlist');
+    }
+
+    async deleteSongFromPlaylist(songId, playlistId) {
+        const query = {
+            text: `DELETE FROM playlist_songs WHERE playlist_id = $1 AND song_id = $2 RETURNING id`,
+            values: [playlistId, songId],
+        };
+
+        const result = await this._pool.query(query);
+
+        if (!result.rowCount) throw new InvariantError('Failed to delete song');
     }
 }
 

@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
+const jwt = require('@hapi/jwt');
 const ClientError = require('./exceptions/client-error');
 
 // albums
@@ -24,11 +25,17 @@ const AuthenticationsService = require('./services/authentications-service');
 const tokenManager = require('./tokenize/token-manager');
 const authenticationsValidator = require('./validator/authentications');
 
+// playlists
+const PlaylistsService = require('./services/playlists-service');
+const playlists = require('./api/playlists');
+const playlistsValidator = require('./validator/playlilsts');
+
 const init = async () => {
     const albumsService = new AlbumsService();
     const songsService = new SongsService();
     const usersService = new UsersService();
     const authenticationsService = new AuthenticationsService();
+    const playlistsService = new PlaylistsService();
 
     const server = Hapi.server({
         port: process.env.PORT,
@@ -38,7 +45,32 @@ const init = async () => {
                 origin: ['*'],
             },
         },
+        debug: {
+            request: ['error']
+        },
     });
+
+    await server.register([
+        {
+            plugin: jwt,
+        },
+    ]);
+
+    server.auth.strategy('openmusic_jwt', 'jwt', {
+        keys: process.env.ACCESS_TOKEN_KEY,
+        verify: {
+            aud: false,
+            iss: false,
+            sub: false,
+            maxAgeSec: process.env.ACCESS_TOKEN_AGE,
+        },
+        validate: (artifacts) => ({
+            isValid: true,
+            credentials: {
+                id: artifacts.decoded.payload.id,
+            },
+        }),
+    })
 
     await server.register([
         {
@@ -51,7 +83,8 @@ const init = async () => {
         {
             plugin: songs,
             options: {
-                service: songsService,
+                songsService: songsService,
+                playlistsService: playlistsService,
                 validator: songsValidator,
             }
         },
@@ -70,6 +103,13 @@ const init = async () => {
                 tokenManager,
                 validator: authenticationsValidator,
             }
+        },
+        {
+            plugin: playlists,
+            options: {
+                service: playlistsService,
+                validator: playlistsValidator,
+            },
         },
     ]);
 

@@ -9,6 +9,16 @@ const songValidationSchema = Joi.object({
     albumId: Joi.string().optional(),
 });
 
+const postSongToPlaylistValidationSchema = Joi.object({
+    songId: Joi.string().required(),
+});
+
+const deleteSongInPlaylistValidationSchema = Joi.object({
+    songId: Joi.string().required(),
+});
+
 module.exports = {
-    songValidationSchema
+    songValidationSchema,
+    postSongToPlaylistValidationSchema,
+    deleteSongInPlaylistValidationSchema
 };
